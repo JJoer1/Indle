@@ -44,7 +44,7 @@ export async function GET() {
         .where(eq(users.companyId, cid)),
     ]);
 
-  const teamMap = new Map(team.map((t) => [t.id, t]));
+  const teamMap = new Map(team.map((t: { id: string }) => [t.id, t]));
   const now = new Date();
 
   const wonDeals = allDeals.filter((d) => d.stageName?.toLowerCase() === "won");

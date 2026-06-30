@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { leads, users } from "@/db/schema";
-import { eq, and, or, ilike, isNull, desc } from "drizzle-orm";
+import { eq, and, or, like, isNull, desc } from "drizzle-orm";
 import { requirePermission, logActivity } from "@/lib/auth";
 
 type LeadStatus = "new" | "contacted" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const conds = [eq(leads.companyId, ctx.companyId), isNull(leads.deletedAt)];
   if (q) {
     const t = `%${q}%`;
-    conds.push(or(ilike(leads.name, t), ilike(leads.company, t), ilike(leads.email, t))!);
+    conds.push(or(like(leads.name, t), like(leads.company, t), like(leads.email, t))!);
   }
   // Fetch leads with assigned user name
   const leadRows = await db

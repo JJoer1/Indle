@@ -81,9 +81,11 @@ export async function GET() {
   const pipelineValue = openDeals.reduce((s, d) => s + parseFloat(d.deal.value ?? "0"), 0);
 
   const activeCustomers = allCustomers.filter((c) => c.status === "active").length;
-  const newCustomers = allCustomers.filter(
-    (c) => new Date(c.createdAt).getMonth() === now.getMonth() && new Date(c.createdAt).getFullYear() === now.getFullYear()
-  ).length;
+  const newCustomers = allCustomers.filter((c) => {
+    if (!c.createdAt) return false;
+    const created = new Date(c.createdAt);
+    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+  }).length;
 
   // monthly sales (last 6 months)
   const monthly: { month: string; revenue: number; deals: number }[] = [];
@@ -91,7 +93,9 @@ export async function GET() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const label = d.toLocaleString("en-US", { month: "short" });
     const monthWon = wonDeals.filter((wd) => {
-      const ref = wd.deal.expectedCloseDate ? new Date(wd.deal.expectedCloseDate) : new Date(wd.deal.updatedAt);
+      const refDateStr = wd.deal.expectedCloseDate ?? wd.deal.updatedAt ?? null;
+      if (!refDateStr) return false;
+      const ref = new Date(refDateStr);
       return ref.getMonth() === d.getMonth() && ref.getFullYear() === d.getFullYear();
     });
     monthly.push({
@@ -105,13 +109,12 @@ export async function GET() {
   startToday.setHours(0, 0, 0, 0);
   const endToday = new Date(now);
   endToday.setHours(23, 59, 59, 999);
-  const tasksDueToday = allTasks.filter(
-    (t) =>
-      t.dueDate &&
-      t.status !== "done" &&
-      new Date(t.dueDate).getTime() >= startToday.getTime() &&
-      new Date(t.dueDate).getTime() <= endToday.getTime()
-  );
+  const tasksDueToday = allTasks.filter((t) => {
+    if (!t.dueDate) return false;
+    if (t.status === "done") return false;
+    const due = new Date(t.dueDate);
+    return due.getTime() >= startToday.getTime() && due.getTime() <= endToday.getTime();
+  });
 
   // top performers by won deal value
   const perfMap = new Map<string, number>();

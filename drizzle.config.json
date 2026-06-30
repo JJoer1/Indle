@@ -1,5 +1,5 @@
 {
-  "dialect": "postgresql",
+  "dialect": "mysql",
   "schema": "./src/db/schema.ts",
   "dbCredentials": {
     "url": "${env:DATABASE_URL}"

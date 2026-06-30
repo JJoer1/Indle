@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   const stageId = url.searchParams.get("stageId");
 
   const pipelineRows = await db.select().from(pipelines).where(eq(pipelines.companyId, cid));
-  const pipelineIds = pipelineRows.map((p) => p.id);
+  const pipelineIds = pipelineRows.map((p: { id: string }) => p.id);
   const stageRows = pipelineIds.length
     ? await db
         .select()

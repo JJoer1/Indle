@@ -11,40 +11,64 @@ import {
 import { eq, and, isNull, desc, inArray } from "drizzle-orm";
 import { getApiContext } from "@/lib/auth";
 
+// Minimal local types to satisfy TypeScript checks for this route file
+type DealRecord = {
+  deal: {
+    value?: string | null;
+    expectedCloseDate?: string | null;
+    updatedAt?: string | null;
+    assignedToId?: string | null;
+    id?: string;
+  };
+  stageName?: string | null;
+};
+
+type Customer = { status?: string | null; createdAt?: string | null };
+type Lead = { status?: string | null };
+type Task = { dueDate?: string | null; status?: string | null };
+type Activity = any;
+type TeamMember = { id: string; name?: string | null; avatarUrl?: string | null; role?: string | null; jobTitle?: string | null };
+
 export async function GET() {
   const ctx = await getApiContext();
   if ("error" in ctx) return ctx.error;
   const cid = ctx.companyId;
 
-  const [allDeals, allCustomers, allLeads, allTasks, recentActivity, team] =
-    await Promise.all([
-      db
-        .select({ deal: deals, stageName: pipelineStages.name })
-        .from(deals)
-        .leftJoin(pipelineStages, eq(deals.stageId, pipelineStages.id))
-        .where(and(eq(deals.companyId, cid), isNull(deals.deletedAt))),
-      db
-        .select()
-        .from(customers)
-        .where(and(eq(customers.companyId, cid), isNull(customers.deletedAt))),
-      db
-        .select()
-        .from(leads)
-        .where(and(eq(leads.companyId, cid), isNull(leads.deletedAt))),
-      db.select().from(tasks).where(eq(tasks.companyId, cid)),
-      db
-        .select()
-        .from(activities)
-        .where(eq(activities.companyId, cid))
-        .orderBy(desc(activities.createdAt))
-        .limit(8),
-      db
-        .select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl, role: users.role, jobTitle: users.jobTitle })
-        .from(users)
-        .where(eq(users.companyId, cid)),
-    ]);
+  const [allDeals, allCustomers, allLeads, allTasks, recentActivity, team]: [
+    DealRecord[],
+    Customer[],
+    Lead[],
+    Task[],
+    Activity[],
+    TeamMember[]
+  ] = await Promise.all([
+    db
+      .select({ deal: deals, stageName: pipelineStages.name })
+      .from(deals)
+      .leftJoin(pipelineStages, eq(deals.stageId, pipelineStages.id))
+      .where(and(eq(deals.companyId, cid), isNull(deals.deletedAt))),
+    db
+      .select()
+      .from(customers)
+      .where(and(eq(customers.companyId, cid), isNull(customers.deletedAt))),
+    db
+      .select()
+      .from(leads)
+      .where(and(eq(leads.companyId, cid), isNull(leads.deletedAt))),
+    db.select().from(tasks).where(eq(tasks.companyId, cid)),
+    db
+      .select()
+      .from(activities)
+      .where(eq(activities.companyId, cid))
+      .orderBy(desc(activities.createdAt))
+      .limit(8),
+    db
+      .select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl, role: users.role, jobTitle: users.jobTitle })
+      .from(users)
+      .where(eq(users.companyId, cid)),
+  ]);
 
-  const teamMap = new Map(team.map((t: { id: string }) => [t.id, t]));
+  const teamMap = new Map<string, TeamMember>(team.map((t) => [t.id, t]));
   const now = new Date();
 
   const wonDeals = allDeals.filter((d) => d.stageName?.toLowerCase() === "won");
